@@ -1,62 +1,59 @@
 import pt.isel.canvas.*
 
-const val CELL_SIDE = 64
-const val CANVAS_WIDTH = 20
-const val CANVAS_HEIGHT = 16
+const val CELL_SIDE = 32
+const val GRID_WIDTH = 20
+const val GRID_HEIGHT = 16
+const val SPRITE_DIV = 64
 
-//data class Game(val snake:Snake, val wall:List<Position>)
-data class Snake(val position:Position, val animation:Int, val vector:Direction? )
-data class Position(val x:Int, val y: Int)
-operator fun Position.plus( direction:Direction ) = Position( x + direction.dx(), y + direction.dy() )
-enum class Direction(val dx:Int, val dy:Int) { LEFT(-1,0), UP(0,-1), RIGHT(1,0), DOWN(0,1) }
+data class Game(val snake:Snake, val wall: List<Position>)
 
-fun Direction?.dx() = this?.dx ?: 0
-fun Direction?.dy() = this?.dy ?: 0
 
-fun Canvas.drawGrid() {
-    (CELL_SIDE..height step CELL_SIDE).forEach {
-        drawLine(0, it, width, it, WHITE, 1) // horizontal
+fun Canvas.drawGrid(){
+    (CELL_SIDE..height step CELL_SIDE).forEach{
+        drawLine(0, it, width, it, WHITE,1)
     }
     (CELL_SIDE..width step CELL_SIDE).forEach {
-        drawLine(it, 0, it, height, WHITE, 1) // vertical
+        drawLine(it, 0, it, width, WHITE, 1)
     }
 }
-fun Canvas.drawArena(snake:Snake) {
+
+
+fun Canvas.drawGame(game: Game) {
     erase()
     drawGrid()
-    drawSnake(snake)
+    drawHead(game.snake)
+    drawTail(game.snake)
+    drawWalls(game.wall)
 }
 
-fun directionMov(key: Int) :Direction? = when(key){
-    LEFT_CODE -> Direction.LEFT
-    RIGHT_CODE -> Direction.RIGHT
-    UP_CODE -> Direction.UP
-    DOWN_CODE -> Direction.DOWN
-    else -> null
-}
-fun movement(key: Int, snake:Snake) :Snake{
-    val direction = directionMov(key) ?: return snake
-    val toPosition = snake.position + direction
-    return Snake(toPosition,CELL_SIDE,direction)
-   // return if (toPosition.isValid)
-}
+
+
 
 fun main() {
     onStart {
-        /** Creation of the Canvas window and the first RoundSquare **/
-        val cv = Canvas(20*64, 16*64, BLACK)
-        var snake = Snake( Position(CANVAS_WIDTH/2, CANVAS_HEIGHT/2), animation = 0, null)
-        cv.drawArena(snake)
+        val cv = Canvas(GRID_WIDTH * CELL_SIDE, GRID_HEIGHT * CELL_SIDE, BLACK)
+        var game = Game(Snake(Position(0, GRID_HEIGHT / 2),
+            Position(-1, GRID_HEIGHT / 2), Direction.RIGHT), emptyList())
+        cv.drawGame(game)
 
-        cv.onKeyPressed { ke :KeyEvent ->
-            snake = movement(ke.code,snake)
-            cv.drawArena(snake) }
-      /* cv.onTimeProgress(15){
+
+
+        cv.onKeyPressed { ke ->
+            game = Game(newDirection(game.snake, ke.code),game.wall)
 
         }
-        cv.onTimeProgress(250){
-            //aparecem brincs aleatóriamente
-        } */
+        cv.onTimeProgress(500) {
+            game = move(game)
+            game = Game(Snake(game.snake.headPosition.normalize(), game.snake.tailPosition.normalize(),game.snake.direction), game.wall)
+            cv.drawGame(game)
+        }
+
+        cv.onTimeProgress(5000){
+            game = createWalls(game)
+            cv.drawGame(game)
+        }
+
+
     }
-    onFinish {}
+    onFinish { }
 }
