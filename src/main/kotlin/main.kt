@@ -1,51 +1,31 @@
 import pt.isel.canvas.*
 
-const val CELL_SIDE = 32
-const val GRID_WIDTH = 20
-const val GRID_HEIGHT = 16
-const val SPRITE_DIV = 64
-
-data class Game(val snake:Snake, val wall: List<Position>)
-
-
-fun Canvas.drawGrid(){
-    (CELL_SIDE..height step CELL_SIDE).forEach{
-        drawLine(0, it, width, it, WHITE,1)
-    }
-    (CELL_SIDE..width step CELL_SIDE).forEach {
-        drawLine(it, 0, it, width, WHITE, 1)
-    }
-}
-
-
-fun Canvas.drawGame(game: Game) {
-    erase()
-    drawGrid()
-    drawHead(game.snake)
-    drawTail(game.snake)
-    drawWalls(game.wall)
-}
-
-
-
+/**
+ * The main function of the game
+ */
 
 fun main() {
     onStart {
         val cv = Canvas(GRID_WIDTH * CELL_SIDE, GRID_HEIGHT * CELL_SIDE, BLACK)
-        var game = Game(Snake(Position(0, GRID_HEIGHT / 2),
-            Position(-1, GRID_HEIGHT / 2), Direction.RIGHT), emptyList())
+        var game = Game(Snake(Position(5, GRID_HEIGHT / 2),
+            Position(4, GRID_HEIGHT / 2), Direction.RIGHT), emptyList())
         cv.drawGame(game)
-
 
 
         cv.onKeyPressed { ke ->
             game = Game(newDirection(game.snake, ke.code),game.wall)
-
         }
-        cv.onTimeProgress(500) {
-            game = move(game)
-            game = Game(Snake(game.snake.headPosition.normalize(), game.snake.tailPosition.normalize(),game.snake.direction), game.wall)
+
+        cv.onTimeProgress(250) {
+            game = if (isSnakeColliding(game)) game  else move(game)
             cv.drawGame(game)
+            game = Game(game.snake.copy(tailPosition = tailPosition(game.snake)),game.wall)
+            game = Game(Snake(
+                    game.snake.headPosition.normalize(),
+                    game.snake.tailPosition.normalize(),
+                    game.snake.direction), game.wall)
+
+
         }
 
         cv.onTimeProgress(5000){
@@ -53,7 +33,8 @@ fun main() {
             cv.drawGame(game)
         }
 
-
     }
     onFinish { }
 }
+
+
